@@ -43,7 +43,10 @@ public final class TradeChestMenu extends ChestMenu {
     }
 
     public TradeChestMenu(int containerId, Inventory inventory, Container container, ServerOwner owner) {
-        this(containerId, inventory, container, owner, createReadyDataSlot(container, 0), createReadyDataSlot(container, 1));
+        this(containerId, inventory, container, owner,
+                createReadyDataSlot(container, 0),
+                createReadyDataSlot(container, 1),
+                createCountdownDataSlot(container));
     }
 
     private TradeChestMenu(int containerId, Inventory inventory, Container container, ServerOwner owner,
