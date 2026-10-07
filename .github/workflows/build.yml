@@ -1,5 +1,7 @@
 name: Build
 
+# Always build the current main revision.
+
 on:
   push:
     branches: [ main ]
