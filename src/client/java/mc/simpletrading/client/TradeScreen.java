@@ -64,7 +64,60 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
             toggleReady();
             return true;
         }
+
+        // The trade grids are custom-rendered, so their visible wells do not rely
+        // on AbstractContainerScreen's stock slot hit-test. Route ordinary
+        // left/right clicks directly to the matching trade slot.
+        if ((event.button() == 0 || event.button() == 1)
+                && clientTradeSlotAt(event.x(), event.y()) >= 0) {
+            int slotId = clientTradeSlotAt(event.x(), event.y());
+            Minecraft client = Minecraft.getInstance();
+            if (client.player != null && client.gameMode != null) {
+                client.gameMode.handleContainerInput(
+                        menu.containerId,
+                        slotId,
+                        event.button(),
+                        ContainerInput.PICKUP,
+                        client.player
+                );
+            }
+            return true;
+        }
+
         return super.mouseClicked(event, doubleClick);
+    }
+
+    private int clientTradeSlotAt(double mouseX, double mouseY) {
+        double localX = mouseX - this.leftPos;
+        double localY = mouseY - this.topPos;
+
+        int firstRowTop = SLOT_TOP - 1 + CELL;
+        int lastRowBottom = SLOT_TOP - 1 + 4 * CELL;
+
+        if (localY < firstRowTop || localY >= lastRowBottom) {
+            return -1;
+        }
+
+        int row = (int) ((localY - firstRowTop) / CELL);
+        if (row < 0 || row >= TRADE_ROWS) {
+            return -1;
+        }
+
+        int col = (int) ((localX - (SLOT_LEFT - 1)) / CELL);
+        if (col < 0 || col >= 9) {
+            return -1;
+        }
+
+        boolean leftOffer = col >= LEFT_TRADE_START_COL
+                && col < LEFT_TRADE_START_COL + TRADE_COLUMNS;
+        boolean rightOffer = col >= RIGHT_TRADE_START_COL
+                && col < RIGHT_TRADE_START_COL + TRADE_COLUMNS;
+
+        if (!leftOffer && !rightOffer) {
+            return -1;
+        }
+
+        return (row + 1) * 9 + col;
     }
 
     private void toggleReady() {
