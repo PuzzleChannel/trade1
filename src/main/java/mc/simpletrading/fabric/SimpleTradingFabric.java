@@ -7,6 +7,7 @@ import mc.simpletrading.economy.TradeManager;
 import mc.simpletrading.economy.SimpleTradingMenus;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 
 /** Fabric server/common entry point. */
@@ -23,6 +24,9 @@ public final class SimpleTradingFabric implements ModInitializer {
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
                 TradeManager.getInstance().handlePlayerLogout(handler.getPlayer()));
+
+        ServerTickEvents.END_SERVER_TICK.register(server ->
+                TradeManager.getInstance().tick());
 
         SimpleTradingMod.LOGGER.info("Simple Trading server initialized");
     }

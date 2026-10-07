@@ -218,6 +218,16 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
                 menu.isClientPlayerA() ? playerBName : playerAName, 70),
                 rightGridX, nameY, TRADE_COLUMNS * CELL, TEXT);
 
+        int statusY = nameY + 9;
+        if (menu.isLocalPlayerReady()) {
+            drawCentered(graphics, client, "ГОТОВ",
+                    leftGridX, statusY, TRADE_COLUMNS * CELL, 0xFF4F7D4F);
+        }
+        if (menu.isOtherPlayerReady()) {
+            drawCentered(graphics, client, "ГОТОВ",
+                    rightGridX, statusY, TRADE_COLUMNS * CELL, 0xFF4F7D4F);
+        }
+
         graphics.text(client.font, this.playerInventoryTitle,
                 this.inventoryLabelX, this.inventoryLabelY, TEXT, false);
     }
@@ -242,18 +252,21 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
 
     private static void drawReadyButton(GuiGraphicsExtractor graphics, int left, int top,
                                         int right, int bottom, boolean ready, boolean hovered) {
-        int outer = ready ? 0xFF6A2C2C : 0xFF4F4F4F;
-        int inner = ready ? (hovered ? 0xFF8A3B3B : 0xFF763333)
+        int outer = ready ? 0xFF315C3A : 0xFF4F4F4F;
+        int inner = ready ? (hovered ? 0xFF4C8758 : 0xFF416F4B)
                 : (hovered ? 0xFF868686 : 0xFF747474);
-        int light = ready ? 0xFF9A5353 : 0xFFADADAD;
-        int dark = ready ? 0xFF4B2222 : 0xFF444444;
+        int light = ready ? 0xFF6CA477 : 0xFFADADAD;
+        int dark = ready ? 0xFF23452C : 0xFF444444;
 
         graphics.fill(left, top, right, bottom, outer);
         graphics.fill(left + 1, top + 1, right - 1, bottom - 1, inner);
         graphics.fill(left + 1, top + 1, right - 1, top + 2, light);
         graphics.fill(left + 1, bottom - 2, right - 1, bottom - 1, dark);
 
-        String label = ready ? "НЕ ГОТОВ" : "ГОТОВ";
+        int countdown = menu.getCountdownSeconds();
+        String label = countdown > 0
+                ? "ОБМЕН " + countdown
+                : ready ? "ОТМЕНИТЬ" : "ГОТОВ";
         Minecraft client = Minecraft.getInstance();
         Component component = Component.literal(label);
         int textWidth = client.font.width(component);

@@ -122,6 +122,12 @@ public final class TradeManager {
         activeSessions.remove(session.getPlayerB().getUUID());
     }
 
+    public void tick() {
+        for (TradeSession session : new java.util.HashSet<>(activeSessions.values())) {
+            session.tick();
+        }
+    }
+
     public void handlePlayerLogout(ServerPlayer player) {
         TradeSession session = activeSessions.get(player.getUUID());
         if (session != null) {

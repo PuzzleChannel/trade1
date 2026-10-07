@@ -23,7 +23,7 @@ public final class TradeChestMenu extends ChestMenu {
     private static final int OFFER_START_ROW = 1;
     private static final int OFFER_END_ROW = 3;
     private static final int CELL = 18;
-    private static final int TRADE_SLOT_Y_OFFSET = -5;
+    private static final int TRADE_SLOT_Y_OFFSET = -4;
 
     private static final int READY_LEFT_COL = 3;
     private static final int READY_RIGHT_COL = 5;
@@ -33,12 +33,13 @@ public final class TradeChestMenu extends ChestMenu {
     private final ServerOwner owner;
     private final DataSlot readyAData;
     private final DataSlot readyBData;
+    private final DataSlot countdownData;
     private boolean clientPlayerIsA;
     private boolean clientSideLayoutInitialized;
 
     public TradeChestMenu(int containerId, Inventory inventory) {
         this(containerId, inventory, new TradeMenuContainer(TRADE_SLOTS, null), null,
-                DataSlot.standalone(), DataSlot.standalone());
+                DataSlot.standalone(), DataSlot.standalone(), DataSlot.standalone());
     }
 
     public TradeChestMenu(int containerId, Inventory inventory, Container container, ServerOwner owner) {
@@ -46,7 +47,7 @@ public final class TradeChestMenu extends ChestMenu {
     }
 
     private TradeChestMenu(int containerId, Inventory inventory, Container container, ServerOwner owner,
-                           DataSlot readyAData, DataSlot readyBData) {
+                           DataSlot readyAData, DataSlot readyBData, DataSlot countdownData) {
         super(SimpleTradingMenus.TRADE, containerId, inventory, container, TRADE_ROWS);
         if (!(container instanceof TradeMenuContainer tradeContainer)) {
             throw new IllegalArgumentException("TradeChestMenu requires TradeMenuContainer");
@@ -55,9 +56,19 @@ public final class TradeChestMenu extends ChestMenu {
         this.owner = owner;
         this.readyAData = readyAData;
         this.readyBData = readyBData;
+        this.countdownData = countdownData;
         addDataSlot(this.readyAData);
         addDataSlot(this.readyBData);
+        addDataSlot(this.countdownData);
         replaceInactiveSlots();
+    }
+
+    private static DataSlot createCountdownDataSlot(Container container) {
+        TradeMenuContainer tradeContainer = (TradeMenuContainer) container;
+        TradeSession session = tradeContainer.getSession();
+        return session == null
+                ? DataSlot.standalone()
+                : DataSlot.shared(session.getCountdownData(), 0);
     }
 
     private static DataSlot createReadyDataSlot(Container container, int index) {
@@ -164,6 +175,10 @@ public final class TradeChestMenu extends ChestMenu {
         return playerIsA() ? isPlayerBReady() : isPlayerAReady();
     }
 
+    public int getCountdownSeconds() {
+        return this.countdownData.get();
+    }
+
     private boolean playerIsA() {
         return owner != null ? owner.playerIsA() : clientPlayerIsA;
     }
@@ -174,12 +189,7 @@ public final class TradeChestMenu extends ChestMenu {
 
     @Override
     public void clicked(int slotId, int button, ContainerInput input, Player player) {
-        if (owner == null) {
-            super.clicked(slotId, button, input, player);
-            return;
-        }
-
-        if (!(player instanceof ServerPlayer serverPlayer) || !isServerOwner(serverPlayer)) {
+        if (owner != null && !isServerOwner(player)) {
             return;
         }
 
@@ -191,136 +201,144 @@ public final class TradeChestMenu extends ChestMenu {
             int column = slotId % 9;
             int row = slotId / 9;
 
-            // The ready button occupies the central 3x1 area.
-            if (row == READY_ROW && column >= READY_LEFT_COL && column <= READY_RIGHT_COL
-                    && button == 0 && input == ContainerInput.PICKUP) {
-                tradeContainer.getSession().toggleReady(serverPlayer);
-                return;
-            }
-
-            Slot clickedSlot = this.slots.get(slotId);
-
-            // Own offer slots are handled explicitly on the server because the
-            // left/right visual sides are remapped to different logical columns.
-            // The client still uses the normal menu click prediction; the server
-            // applies the same pickup rules against the authoritative shared container.
-            if (clickedSlot instanceof TradeOfferSlot offerSlot) {
-                if (offerSlot.isLocalOffer() && input == ContainerInput.PICKUP) {
-                    handleTradePickup(serverPlayer, offerSlot, button);
+            if (owner != null
+                    && row == READY_ROW
+                    && column >= READY_LEFT_COL
+                    && column <= READY_RIGHT_COL
+                    && button == 0
+                    && input == ContainerInput.PICKUP) {
+                TradeSession session = tradeContainer.getSession();
+                if (session != null) {
+                    session.toggleReady((ServerPlayer) player);
                 }
                 return;
             }
 
-            // Every other slot in the 6x9 trade canvas is decorative/view-only.
-            return;
-        }
+            Slot clickedSlot = this.slots.get(slotId);
+            if (!(clickedSlot instanceof TradeOfferSlot offerSlot)
+                    || !offerSlot.isLocalOffer()
+                    || isLocalPlayerReady()) {
+                return;
+            }
 
-        if (slotId >= TRADE_SLOTS && input == ContainerInput.QUICK_MOVE) {
-            TradeGui.handleQuickMove(serverPlayer, tradeContainer, slotId, owner.playerIsA());
+            // Use vanilla click processing for the actual offer slot. This keeps
+            // client prediction, cursor handling, quick-craft and item components
+            // identical on client and server.
+            super.clicked(slotId, button, input, player);
             return;
         }
 
         super.clicked(slotId, button, input, player);
     }
 
-    private void handleTradePickup(ServerPlayer player, TradeOfferSlot slot, int button) {
-        if (button != 0 && button != 1) {
-            return;
-        }
-
-        ItemStack carried = getCarried().copy();
-        ItemStack inSlot = slot.getItem().copy();
-
-        if (button == 0) {
-            if (carried.isEmpty()) {
-                if (inSlot.isEmpty()) {
-                    return;
-                }
-
-                ItemStack taken = inSlot.copy();
-                slot.set(ItemStack.EMPTY);
-                setCarried(taken);
-                slot.onTake(player, taken);
-            } else if (inSlot.isEmpty()) {
-                int amount = Math.min(carried.getCount(), slot.getMaxStackSize(carried));
-                ItemStack placed = carried.copy();
-                placed.setCount(amount);
-                slot.set(placed);
-                carried.shrink(amount);
-                setCarried(carried);
-            } else if (ItemStack.isSameItemSameComponents(carried, inSlot)) {
-                int space = Math.min(slot.getMaxStackSize(inSlot), inSlot.getMaxStackSize()) - inSlot.getCount();
-                if (space <= 0) {
-                    return;
-                }
-                int amount = Math.min(space, carried.getCount());
-                inSlot.grow(amount);
-                carried.shrink(amount);
-                slot.set(inSlot);
-                setCarried(carried);
-            } else {
-                // Left-click with a different item swaps the cursor and the slot.
-                if (!slot.mayPlace(carried) || !slot.mayPickup(player)) {
-                    return;
-                }
-                slot.set(carried);
-                setCarried(inSlot);
-            }
-        } else {
-            if (carried.isEmpty()) {
-                if (inSlot.isEmpty()) {
-                    return;
-                }
-                int amount = (inSlot.getCount() + 1) / 2;
-                ItemStack taken = inSlot.copy();
-                taken.setCount(amount);
-                inSlot.shrink(amount);
-                slot.set(inSlot);
-                setCarried(taken);
-                slot.onTake(player, taken);
-            } else if (inSlot.isEmpty()) {
-                ItemStack placed = carried.copy();
-                placed.setCount(1);
-                slot.set(placed);
-                carried.shrink(1);
-                setCarried(carried);
-            } else if (ItemStack.isSameItemSameComponents(carried, inSlot)) {
-                int max = Math.min(slot.getMaxStackSize(inSlot), inSlot.getMaxStackSize());
-                if (inSlot.getCount() >= max) {
-                    return;
-                }
-                inSlot.grow(1);
-                carried.shrink(1);
-                slot.set(inSlot);
-                setCarried(carried);
-            }
-        }
-
-        // Synchronize both viewers immediately and let the session reset readiness if
-        // an offer changed. This keeps the shared trade container authoritative.
-        TradeSession session = tradeContainer.getSession();
-        if (session != null) {
-            session.broadcastMenus();
-        } else {
-            broadcastChanges();
-        }
-    }
-
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
-        // Never shift-click items out of the trade area. Shift-clicking is reserved
-        // for moving items from the player's inventory into their own offer grid.
+        if (slotIndex < 0 || slotIndex >= this.slots.size()) {
+            return ItemStack.EMPTY;
+        }
+
+        if (owner != null && !isServerOwner(player)) {
+            return ItemStack.EMPTY;
+        }
+
         if (slotIndex < TRADE_SLOTS) {
+            Slot source = this.slots.get(slotIndex);
+            if (!(source instanceof TradeOfferSlot offerSlot)
+                    || !offerSlot.isLocalOffer()
+                    || isLocalPlayerReady()) {
+                return ItemStack.EMPTY;
+            }
+
+            ItemStack original = source.getItem().copy();
+            if (original.isEmpty()) {
+                return ItemStack.EMPTY;
+            }
+
+            ItemStack moving = original.copy();
+            if (!moveItemStackTo(moving, TRADE_SLOTS, this.slots.size(), true)) {
+                return ItemStack.EMPTY;
+            }
+
+            source.set(moving);
+            source.onTake(player, original);
+            broadcastChanges();
+            return original;
+        }
+
+        if (isLocalPlayerReady()) {
             return ItemStack.EMPTY;
         }
 
-        if (owner != null && player instanceof ServerPlayer serverPlayer
-                && isServerOwner(serverPlayer)) {
-            TradeGui.handleQuickMove(serverPlayer, tradeContainer, slotIndex, owner.playerIsA());
+        Slot source = this.slots.get(slotIndex);
+        ItemStack original = source.getItem().copy();
+        if (original.isEmpty()) {
             return ItemStack.EMPTY;
         }
 
-        return super.quickMoveStack(player, slotIndex);
+        ItemStack moving = original.copy();
+        if (!insertIntoLocalOfferSlots(moving)) {
+            return ItemStack.EMPTY;
+        }
+
+        source.set(moving);
+        source.onTake(player, original);
+        player.getInventory().setChanged();
+        broadcastChanges();
+        return original;
+    }
+
+    private boolean insertIntoLocalOfferSlots(ItemStack moving) {
+        boolean movedAny = false;
+
+        for (Slot target : this.slots) {
+            if (!(target instanceof TradeOfferSlot offerSlot) || !offerSlot.isLocalOffer()) {
+                continue;
+            }
+
+            ItemStack existing = target.getItem();
+            if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(moving, existing)) {
+                continue;
+            }
+
+            int max = Math.min(target.getMaxStackSize(existing), moving.getMaxStackSize());
+            int space = max - existing.getCount();
+            if (space <= 0) {
+                continue;
+            }
+
+            int amount = Math.min(space, moving.getCount());
+            existing.grow(amount);
+            moving.shrink(amount);
+            target.setChanged();
+            movedAny = true;
+
+            if (moving.isEmpty()) {
+                return true;
+            }
+        }
+
+        for (Slot target : this.slots) {
+            if (!(target instanceof TradeOfferSlot offerSlot) || !offerSlot.isLocalOffer()) {
+                continue;
+            }
+
+            if (!target.getItem().isEmpty() || !target.mayPlace(moving)) {
+                continue;
+            }
+
+            int amount = Math.min(moving.getCount(), target.getMaxStackSize(moving));
+            ItemStack placed = moving.copy();
+            placed.setCount(amount);
+            target.set(placed);
+            moving.shrink(amount);
+            movedAny = true;
+
+            if (moving.isEmpty()) {
+                return true;
+            }
+        }
+
+        return movedAny;
     }
 
     @Override
