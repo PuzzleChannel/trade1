@@ -333,7 +333,7 @@ public final class TradeSession {
         cancelTrade(null);
     }
 
-    private void cancelTrade(String reason) {
+    void cancelTrade(String reason) {
         if (completed) {
             return;
         }
