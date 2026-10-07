@@ -30,7 +30,7 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
     private static final int READY_LEFT_COL = 3;
     private static final int READY_WIDTH_COLS = 3;
     private static final int READY_ROW = 4;
-    private static final int HEADER_Y_OFFSET = 10;
+    private static final int HEADER_Y_OFFSET = 8;
     private static final int READY_Y_OFFSET = 10;
 
     // Same dark-gray used by vanilla container title text.
@@ -106,7 +106,7 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
         int panelLeft = this.leftPos + SLOT_LEFT - 1;
         int panelTop = this.topPos + SLOT_TOP - 1;
         int panelWidth = 9 * CELL + 2;
-        int panelHeight = 6 * CELL + 2;
+        int panelHeight = 6 * CELL + 5;
         graphics.fill(panelLeft, panelTop, panelLeft + panelWidth, panelTop + panelHeight, PANEL);
 
         // Redraw only the 24 real trading slots using the exact same 18x18 texture
@@ -213,7 +213,7 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
         int rightGridX = SLOT_LEFT + RIGHT_TRADE_START_COL * CELL;
         int nameY = 3 + HEADER_Y_OFFSET;
 
-        drawCentered(graphics, client, "ВЫ", leftGridX, nameY, TRADE_COLUMNS * CELL, TEXT);
+        drawCentered(graphics, client, "Вы", leftGridX, nameY, TRADE_COLUMNS * CELL, TEXT);
         drawCentered(graphics, client, fitName(
                 menu.isClientPlayerA() ? playerBName : playerAName, 70),
                 rightGridX, nameY, TRADE_COLUMNS * CELL, TEXT);

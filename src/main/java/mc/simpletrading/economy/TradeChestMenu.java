@@ -90,13 +90,10 @@ public final class TradeChestMenu extends ChestMenu {
                             : RIGHT_START_COL + visualColumn;
                     int logicalContainerSlot = row * 9 + logicalColumn;
 
-                    // Move the actual interactive trade slot together with the
-                    // compact header used by the custom screen.  The visual grid
-                    // is 4 px higher than the stock 6-row chest slot position.
-                    // Keep the local offer on the normal slot baseline. The remote offer
-                    // is nudged down by one pixel so its item icons sit optically centered
-                    // in the same slot wells.
-                    int visualY = old.y - (localSide ? 4 : 3);
+                    // Move the actual interactive trade slot to the exact position
+                    // used by the custom-rendered slot well on the client.
+                    // Both local and remote grids use the same baseline.
+                    int visualY = old.y - 4;
                     this.slots.set(visualIndex, new TradeOfferSlot(
                             tradeContainer, logicalContainerSlot, old.x, visualY, localSide));
                     continue;
@@ -191,22 +188,21 @@ public final class TradeChestMenu extends ChestMenu {
                 return;
             }
 
-            // Handle trade-slot pickup directly on the authoritative server menu.
-            // The vanilla menu click path is intentionally bypassed here because these
-            // visual slots can point at a different logical container column for player B.
-            if (input == ContainerInput.PICKUP
-                    && this.slots.get(slotId) instanceof TradeOfferSlot offerSlot) {
-                if (offerSlot.isLocalOffer()) {
+            Slot clickedSlot = this.slots.get(slotId);
+
+            // Own offer slots are handled explicitly on the server because the
+            // left/right visual sides are remapped to different logical columns.
+            // The client still uses the normal menu click prediction; the server
+            // applies the same pickup rules against the authoritative shared container.
+            if (clickedSlot instanceof TradeOfferSlot offerSlot) {
+                if (offerSlot.isLocalOffer() && input == ContainerInput.PICKUP) {
                     handleTradePickup(serverPlayer, offerSlot, button);
                 }
                 return;
             }
 
-            // Remote/inactive trade slots are view-only.
-            if (this.slots.get(slotId) instanceof TradeOfferSlot
-                    || this.slots.get(slotId) instanceof InactiveSlot) {
-                return;
-            }
+            // Every other slot in the 6x9 trade canvas is decorative/view-only.
+            return;
         }
 
         if (slotId >= TRADE_SLOTS && input == ContainerInput.QUICK_MOVE) {
@@ -302,14 +298,18 @@ public final class TradeChestMenu extends ChestMenu {
 
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
+        // Never shift-click items out of the trade area. Shift-clicking is reserved
+        // for moving items from the player's inventory into their own offer grid.
+        if (slotIndex < TRADE_SLOTS) {
+            return ItemStack.EMPTY;
+        }
+
         if (owner != null && player instanceof ServerPlayer serverPlayer
-                && isServerOwner(serverPlayer) && slotIndex >= TRADE_SLOTS) {
+                && isServerOwner(serverPlayer)) {
             TradeGui.handleQuickMove(serverPlayer, tradeContainer, slotIndex, owner.playerIsA());
             return ItemStack.EMPTY;
         }
-        if (owner == null && slotIndex < TRADE_SLOTS) {
-            return ItemStack.EMPTY;
-        }
+
         return super.quickMoveStack(player, slotIndex);
     }
 
