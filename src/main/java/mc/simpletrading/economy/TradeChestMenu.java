@@ -23,6 +23,7 @@ public final class TradeChestMenu extends ChestMenu {
     private static final int OFFER_START_ROW = 1;
     private static final int OFFER_END_ROW = 3;
     private static final int CELL = 18;
+    private static final int TRADE_SLOT_Y_OFFSET = -5;
 
     private static final int READY_LEFT_COL = 3;
     private static final int READY_RIGHT_COL = 5;
@@ -33,6 +34,7 @@ public final class TradeChestMenu extends ChestMenu {
     private final DataSlot readyAData;
     private final DataSlot readyBData;
     private boolean clientPlayerIsA;
+    private boolean clientSideLayoutInitialized;
 
     public TradeChestMenu(int containerId, Inventory inventory) {
         this(containerId, inventory, new TradeMenuContainer(TRADE_SLOTS, null), null,
@@ -93,7 +95,7 @@ public final class TradeChestMenu extends ChestMenu {
                     // Move the actual interactive trade slot to the exact position
                     // used by the custom-rendered slot well on the client.
                     // Both local and remote grids use the same baseline.
-                    int visualY = old.y - 4;
+                    int visualY = old.y + TRADE_SLOT_Y_OFFSET;
                     this.slots.set(visualIndex, new TradeOfferSlot(
                             tradeContainer, logicalContainerSlot, old.x, visualY, localSide));
                     continue;
@@ -126,15 +128,19 @@ public final class TradeChestMenu extends ChestMenu {
     }
 
     public void setClientPlayerIsA(boolean playerA) {
-        if (this.clientPlayerIsA == playerA) {
+        if (owner != null) {
             return;
         }
+
+        // Rebuild even on the initial false/false state. The client menu is
+        // constructed with the default side before TradeScreen identifies the
+        // local player. Without an unconditional first rebuild, player A keeps
+        // the player-B mapping and the visible/clickable grids diverge.
+        boolean changed = this.clientPlayerIsA != playerA;
         this.clientPlayerIsA = playerA;
-        if (owner == null) {
-            // The client menu is created before the screen knows whether this
-            // viewer is A or B. Rebuild the visual-to-logical offer mapping so
-            // the local player's own 4x3 grid is always on the LEFT.
+        if (changed || !clientSideLayoutInitialized) {
             replaceInactiveSlots();
+            clientSideLayoutInitialized = true;
         }
     }
 
