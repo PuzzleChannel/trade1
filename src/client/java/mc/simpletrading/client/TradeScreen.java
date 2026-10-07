@@ -138,7 +138,8 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
                 this.leftPos + buttonRight,
                 this.topPos + buttonBottom,
                 menu.isLocalPlayerReady(),
-                hovered
+                hovered,
+                menu.getCountdownSeconds()
         );
     }
 
@@ -251,7 +252,8 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
     }
 
     private static void drawReadyButton(GuiGraphicsExtractor graphics, int left, int top,
-                                        int right, int bottom, boolean ready, boolean hovered) {
+                                        int right, int bottom, boolean ready, boolean hovered,
+                                        int countdown) {
         int outer = ready ? 0xFF315C3A : 0xFF4F4F4F;
         int inner = ready ? (hovered ? 0xFF4C8758 : 0xFF416F4B)
                 : (hovered ? 0xFF868686 : 0xFF747474);
@@ -263,7 +265,6 @@ public final class TradeScreen extends AbstractContainerScreen<TradeChestMenu> {
         graphics.fill(left + 1, top + 1, right - 1, top + 2, light);
         graphics.fill(left + 1, bottom - 2, right - 1, bottom - 1, dark);
 
-        int countdown = menu.getCountdownSeconds();
         String label = countdown > 0
                 ? "ОБМЕН " + countdown
                 : ready ? "ОТМЕНИТЬ" : "ГОТОВ";
