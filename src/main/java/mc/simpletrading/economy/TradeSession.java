@@ -115,10 +115,6 @@ public final class TradeSession {
         }
     }
 
-    private boolean playerAReadyFor(ServerPlayer player) {
-        return player == playerA && playerAReady || player == playerB && playerBReady;
-    }
-
     void broadcastMenus() {
         if (playerA.containerMenu instanceof TradeChestMenu menuA) {
             menuA.broadcastChanges();
@@ -147,9 +143,7 @@ public final class TradeSession {
                 || menuA.getTradeSession() != this
                 || !(playerB.containerMenu instanceof TradeChestMenu menuB)
                 || menuB.getTradeSession() != this) {
-            cancelTrade();
-            sendMessage(playerA, "§cОбмен отменён: игроки должны оставаться рядом и в окне обмена.");
-            sendMessage(playerB, "§cОбмен отменён: игроки должны оставаться рядом и в окне обмена.");
+            cancelTrade("§cОбмен отменён: игроки должны оставаться рядом и в окне обмена.");
             return;
         }
 
@@ -320,9 +314,14 @@ public final class TradeSession {
     }
 
     public void cancelTrade() {
+        cancelTrade(null);
+    }
+
+    private void cancelTrade(String reason) {
         if (completed) {
             return;
         }
+
         completed = true;
         countdownTicks = 0;
         countdownData[0] = 0;
@@ -346,8 +345,14 @@ public final class TradeSession {
 
         TradeManager.getInstance().removeActiveSession(this);
         closeMenus();
-        sendMessage(playerA, "§cОбмен отменён.");
-        sendMessage(playerB, "§cОбмен отменён.");
+
+        if (reason == null) {
+            sendMessage(playerA, "§cОбмен отменён.");
+            sendMessage(playerB, "§cОбмен отменён.");
+        } else {
+            sendMessage(playerA, reason);
+            sendMessage(playerB, reason);
+        }
     }
 
     private void closeMenus() {
