@@ -95,7 +95,11 @@ public final class TradeChestMenu extends ChestMenu {
                     // Move the actual interactive trade slot to the exact position
                     // used by the custom-rendered slot well on the client.
                     // Both local and remote grids use the same baseline.
-                    int visualY = old.y + TRADE_SLOT_Y_OFFSET;
+                    // Derive the Y position from the row rather than from old.y.
+                    // replaceInactiveSlots() can run more than once on the client;
+                    // using old.y would otherwise apply the offset repeatedly.
+                    int vanillaSlotY = 18 + row * CELL;
+                    int visualY = vanillaSlotY + TRADE_SLOT_Y_OFFSET;
                     this.slots.set(visualIndex, new TradeOfferSlot(
                             tradeContainer, logicalContainerSlot, old.x, visualY, localSide));
                     continue;
