@@ -20,9 +20,11 @@ public final class TradeSession {
     private final int[] readyStateData = new int[2];
     private final int[] countdownData = new int[1];
     private int countdownTicks;
+    private int inactivityTicks;
     private boolean completed;
 
     private static final int COUNTDOWN_TICKS = 60;
+    private static final int AFK_TIMEOUT_TICKS = 30 * 20;
     private static final double MAX_TRADE_DISTANCE_SQR = 100.0D;
 
     public TradeSession(ServerPlayer playerA, ServerPlayer playerB) {
@@ -63,11 +65,18 @@ public final class TradeSession {
         return countdownData;
     }
 
+    public void markActivity() {
+        if (!completed) {
+            inactivityTicks = 0;
+        }
+    }
+
     public void onContainerChanged() {
         if (completed) {
             return;
         }
 
+        markActivity();
         boolean hadReadyState = playerAReady || playerBReady || countdownTicks > 0;
         playerAReady = false;
         playerBReady = false;
@@ -86,6 +95,7 @@ public final class TradeSession {
             return;
         }
 
+        markActivity();
         boolean wasReady = player == playerA ? playerAReady : playerBReady;
 
         if (player == playerA) {
@@ -144,6 +154,12 @@ public final class TradeSession {
                 || !(playerB.containerMenu instanceof TradeChestMenu menuB)
                 || menuB.getTradeSession() != this) {
             cancelTrade("§cОбмен отменён: игроки должны оставаться рядом и в окне обмена.");
+            return;
+        }
+
+        inactivityTicks++;
+        if (inactivityTicks >= AFK_TIMEOUT_TICKS) {
+            cancelTrade("§cОбмен отменён: 30 секунд не было действий.");
             return;
         }
 

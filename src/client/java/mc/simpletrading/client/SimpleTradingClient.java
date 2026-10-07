@@ -3,11 +3,13 @@ package mc.simpletrading.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import mc.simpletrading.SimpleTradingMod;
 import mc.simpletrading.economy.SimpleTradingMenus;
+import mc.simpletrading.network.TradePayloads;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -61,7 +63,7 @@ public final class SimpleTradingClient implements ClientModInitializer {
                 continue;
             }
 
-            client.getConnection().sendCommand("trade " + target.getGameProfile().name());
+            ClientPlayNetworking.send(new TradePayloads.RequestTradePayload(target.getId()));
         }
     }
 

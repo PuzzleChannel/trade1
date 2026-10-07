@@ -227,6 +227,12 @@ public final class TradeChestMenu extends ChestMenu {
             // Use vanilla click processing for the actual offer slot. This keeps
             // client prediction, cursor handling, quick-craft and item components
             // identical on client and server.
+            if (owner != null) {
+                TradeSession session = tradeContainer.getSession();
+                if (session != null) {
+                    session.markActivity();
+                }
+            }
             super.clicked(slotId, button, input, player);
             return;
         }
@@ -257,6 +263,11 @@ public final class TradeChestMenu extends ChestMenu {
                 return ItemStack.EMPTY;
             }
 
+            TradeSession session = tradeContainer.getSession();
+            if (session != null) {
+                session.markActivity();
+            }
+
             ItemStack moving = original.copy();
             if (!moveItemStackTo(moving, TRADE_SLOTS, this.slots.size(), true)) {
                 return ItemStack.EMPTY;
@@ -276,6 +287,11 @@ public final class TradeChestMenu extends ChestMenu {
         ItemStack original = source.getItem().copy();
         if (original.isEmpty()) {
             return ItemStack.EMPTY;
+        }
+
+        TradeSession session = tradeContainer.getSession();
+        if (session != null) {
+            session.markActivity();
         }
 
         ItemStack moving = original.copy();
