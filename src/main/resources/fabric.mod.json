@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "simpletrading",
+  "version": "${version}",
+  "name": "Simple Trading",
+  "description": "Player-to-player trading for Minecraft 26.2 Fabric. Server and client support with a configurable trade key.",
+  "authors": [
+    "Rvhoyos (original project)",
+    "26.2 Fabric port"
+  ],
+  "contact": {
+    "sources": "https://github.com/Rvhoyos/simple-trading"
+  },
+  "license": "Apache-2.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "mc.simpletrading.fabric.SimpleTradingFabric"
+    ],
+    "client": [
+      "mc.simpletrading.client.SimpleTradingClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
