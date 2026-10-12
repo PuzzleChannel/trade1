@@ -2,7 +2,6 @@ package mc.simpletrading.mixin;
 
 import mc.simpletrading.economy.TradeManager;
 import net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
