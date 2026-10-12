@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.commands.Commands;
 
 /** Fabric server/common entry point. */
 public final class SimpleTradingFabric implements ModInitializer {
@@ -27,10 +28,17 @@ public final class SimpleTradingFabric implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(
                 TradePayloads.RequestTradePayload.TYPE,
-                (payload, context) -> {
-                    ServerPlayerLookup.handleTradeRequest(payload, context);
-                }
+                (payload, context) -> ServerPlayerLookup.handleTradeRequest(payload, context)
         );
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(Commands.literal("tradeaccept")
+                    .executes(context -> TradeManager.getInstance()
+                            .acceptTrade(context.getSource().getPlayerOrException()) ? 1 : 0));
+            dispatcher.register(Commands.literal("tradedeny")
+                    .executes(context -> TradeManager.getInstance()
+                            .rejectTrade(context.getSource().getPlayerOrException()) ? 1 : 0));
+        });
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (entity instanceof net.minecraft.server.level.ServerPlayer player) {
