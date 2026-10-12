@@ -64,7 +64,6 @@ public final class TradeManager {
             return;
         }
 
-        // Keep one outstanding invitation per recipient. Replacing an expired request is safe.
         requestCooldowns.put(requester.getUUID(), now);
         pendingRequests.put(target.getUUID(),
                 new PendingRequest(requester.getUUID(), target.getUUID(), now + REQUEST_TIMEOUT_MILLIS));
@@ -111,8 +110,9 @@ public final class TradeManager {
             return false;
         }
 
-        ServerPlayer requester = target.getServer() == null ? null
-                : target.getServer().getPlayerList().getPlayer(request.requesterId());
+        MinecraftServer server = target.level().getServer();
+        ServerPlayer requester = server == null ? null
+                : server.getPlayerList().getPlayer(request.requesterId());
         if (requester == null || requester.hasDisconnected()) {
             pendingRequests.remove(target.getUUID(), request);
             target.sendSystemMessage(Component.literal("§cИгрок, отправивший запрос, больше не в сети."));
@@ -133,7 +133,6 @@ public final class TradeManager {
             return false;
         }
 
-        // Remove the exact request before creating a session to prevent double-click/replay.
         if (!pendingRequests.remove(target.getUUID(), request)) return false;
         TradeSession session = new TradeSession(requester, target);
         activeSessions.put(requester.getUUID(), session);
@@ -153,8 +152,9 @@ public final class TradeManager {
             target.sendSystemMessage(Component.literal("§cУ вас нет ожидающих запросов на обмен."));
             return false;
         }
-        ServerPlayer requester = target.getServer() == null ? null
-                : target.getServer().getPlayerList().getPlayer(request.requesterId());
+        MinecraftServer server = target.level().getServer();
+        ServerPlayer requester = server == null ? null
+                : server.getPlayerList().getPlayer(request.requesterId());
         target.sendSystemMessage(Component.literal("§eВы отклонили запрос на обмен."));
         if (requester != null && !requester.hasDisconnected()) {
             requester.sendSystemMessage(Component.literal(
