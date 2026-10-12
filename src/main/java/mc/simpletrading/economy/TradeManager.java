@@ -139,10 +139,7 @@ public final class TradeManager {
         activeSessions.put(target.getUUID(), session);
         TradeGui.open(session);
 
-        requester.sendSystemMessage(Component.literal(
-                "§aИгрок §f" + target.getName().getString() + " §aпринял ваш запрос. Обмен открыт."));
-        target.sendSystemMessage(Component.literal(
-                "§aВы приняли запрос на обмен от игрока §f" + requester.getName().getString() + "§a."));
+        // Opening the GUI is the confirmation; avoid redundant chat notifications.
         return true;
     }
 
